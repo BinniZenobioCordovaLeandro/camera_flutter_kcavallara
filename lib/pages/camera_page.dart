@@ -1,7 +1,8 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:camera/camera.dart';
 
 class CameraPage extends StatefulWidget {
@@ -22,6 +23,7 @@ class _CameraPageState extends State<CameraPage>
   @override
   void initState() {
     super.initState();
+    this._requestPermission();
     this.initialize();
   }
 
@@ -41,6 +43,27 @@ class _CameraPageState extends State<CameraPage>
     super.dispose();
   }
 
+  _requestPermission() async {
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.storage,
+      Permission.camera,
+    ].request();
+
+    final info = statuses[Permission.storage].toString();
+    print(info);
+    _toastInfo(info);
+  }
+
+  _toastInfo(String info) {
+    ScaffoldMessenger.of(
+      this.context,
+    ).showSnackBar(
+      SnackBar(
+        content: Text(info.toString()),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!controller.value.isInitialized) {
@@ -52,17 +75,9 @@ class _CameraPageState extends State<CameraPage>
         onPressed: () async {
           try {
             final XFile xFile = await controller.takePicture();
-            getApplicationDocumentsDirectory().then((directory) async {
-              print('xFile.saveTo(${directory.path}/${xFile.name})');
-              await xFile.saveTo('${directory.path}/${xFile.name}');
-              ScaffoldMessenger.of(
-                this.context,
-              ).showSnackBar(
-                SnackBar(
-                  content: Text('Image saved ${directory.path}/${xFile.name})'),
-                ),
-              );
-            });
+            xFile.saveTo(xFile.path);
+            dynamic result = await ImageGallerySaver.saveFile(xFile.path);
+            _toastInfo(result.toString());
           } catch (e) {
             print(e);
           }
